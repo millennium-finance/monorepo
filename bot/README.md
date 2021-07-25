@@ -3,5 +3,8 @@
 python3 -m pip install python-binance
 ```
 ```bash
+python3 -m pip install datetime --user
+```
+```bash
 python3 bot <key_api> <key_secret>
 ```
