@@ -11,6 +11,8 @@ is_running = True
 max_loops = 10
 loop_counter = 0
 
+historical_klines = client.get_historical_klines('BTCUSD', Client.KLINE_INTERVAL_1MINUTE, "1 Dec, 2017", "1 Jan, 2018")
+
 print('Program starting...')
 while is_running and loop_counter < max_loops:
     print('Loop number: %i' % loop_counter)
