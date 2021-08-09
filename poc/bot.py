@@ -80,7 +80,8 @@ def sim():
 	global_rising = glv.Global_Rising_Roof("OUT")
 	global_grid = glv.Global_Grid("BLANK","BLANK")
 
-
+# Bank of variables, constants and arrays
+# If this can be made into its own file and referenced or cleaned up to be more interperatable that would be ideal. I (Pat) can clean it up if thats the best option
 	BTC_balance = 0;buy_price = 1;buy_times_short = [];buy_times_market = []; btc_buy_times_grid = []; buys_short = []; btc_buys_grid = []; buys_market = [];btc_sell_times_w = []; sells_short = [];
 	sell_times_market = []; sells_market = []; btc_sells_w = [];btc_sell_times_l = [];btc_sells_l = []; btc_sells_even = []; btc_sell_times_even = []; btc_sells_grid = []; btc_sells_all = []; btc_sell_times_all = [];
 	start_date = df_BTC_1m["timestamp"].iloc[0]; end_date = df_BTC_1m["timestamp"].iloc[len(df_BTC_1m)-1]; BTC=[];usdt=[];BTCDWN=[];timestamp=[];wins = 0;losses = 0;counter= 0; market_change_bull = []; market_change_bear = []; bull_change_times = []; 
@@ -99,6 +100,8 @@ def sim():
 
 
 # INDEX variables to keep applicable data lined up
+# Each different index applies to a seperate tracker that counts during the for loop
+# This section does not necessarily have to be kept in the live bot since lines in a matrix are not what determines the information read, the last pull from binance does
 	index_15m = 0
 	index_1d = 0
 	index_yesterday = -1
@@ -120,10 +123,16 @@ def sim():
 # General Account Inputs:
 	# Principle ammount 
 	principle = 8000
+	# Initial balance
 	USDT_balance = 8000
 
 # Grid trading inputs:
+# Whether or not the bot is trading BTC or BTCDOWN determines how it trades:
+# BTCDOWN is leveraged roughly 3x BTC so when trading with the short coin, grid distances are 3x that of BTC
+# Buy in values (percentage of balance into certain trades) can be changed for each as well if that is desired and found more effective
 	if global_grid.trade_style == "BULL GRID":
+# this section re-defines the generic "crypto data frame" into the first itteration IF manually decided upon by us.
+# Otherwise coin selection will be determined on lines (184-204) by RSI parameter classification
 		df_crypto_1m = df_BTC_1m
 		df_crypto_1d = df_BTC_1d
 		df_crypto_15m = df_BTC_15m
@@ -138,41 +147,63 @@ def sim():
 		buy_wager = 0.05 * USDT_balance
 		first_wager = buy_wager
 
+		
 # Rising Roof inputs:
+# this can be ignored unless we decide to make a strategy not using BTCDOWN and a VPN and instead use the rising roof strat during the BEAR market
 	# rising_roof = 
-
 	# x = [];y = [];index = count()
+	
+	
 # animation function - get working once trading strategy is functional 
+# animation is LAST priority. Unless we want to make a simplified one for a presentation
 	# def animate(i):
 
 	# x_val = next(index)
 	# x.append(x_val)
 	# y.append(int(df.iloc[x_val]["close"]))
 
+
+# Start of action loop of Bot
+# the for loops foundation (index variable) is the 1 minute BTC data frame, it can switch back and forth between BTC and BTCDOWN, but doesn't need to
+	
 	for index, row in df_BTC_1m.iterrows():
 		# Grid trading inputs:
+		
 		cryp_counter += 1
+		
 		try:
 			counter= counter + 1
+			
 			if row["MACD_sig"] != np.nan and row["index"] > (first_day)  :
+				
+				# increases the counter values by one, each time the date parser reads 12:01 am. each night
+				# Use this for all 1-day and 12-hour calculations or actions
 				if datetime.strftime(date_parser.parse(row["timestamp"]), "%H:%M:%S") == midnight:
+					
 					index_1d += 1
 					index_macd += 1
 					index_yesterday += 1
 					index_12h += 1
 					sell_counter += 1
 					index_bb += 1
+					
+				# increases the counter values by one, each time the date parser reads 12:00 pm. each day
+				# Use this ONLY for all 12-hour calculations or actions
 				if datetime.strftime(date_parser.parse(row["timestamp"]), "%H:%M:%S") == noon:
 					index_12h += 1
 					index_bb += 1
-
-# and df_BTC_1d.iloc[index_1d]["1dRSI"] > 20 and df_BTC_1d.iloc[index_macd]["MACD_difference"] != np.nan
+					
+				# this line is to try to make sure the bot doesn't start making buy or sell orders before the proper metrics have been calculated
+				# This WOULD NOT be neccessary for the live bot since the data up to 70 days back already exists (which is the length of longest calculation
+				# we have in the script - 70 moving average) so all we need to do is calculate using 70 days prior data and then feed it into the live data
 				if position.strategy == "GRID TRADE" and df_BTC_1d.iloc[index_1d]["1dRSI"] != np.nan and index_1d > 30:
 					
+					# this line means that the grid market (BEAR or BULL) hasn't been manually determined so the bot assigns it, itself
 					if global_grid.trade == "BLANK" and global_grid.trade_style == "BLANK" :
 
 						if df_BTC_1d.iloc[index_1d]["1dRSI"] < 55 and df_BTC_1d.iloc[index_yesterday]["1dRSI"] < 55 :
 							global_grid.trade_bull()
+						# As long as the data frames are defined here, all of the variables that switch back and forth can be calculated foving forward
 							df_crypto_1m = df_BTC_1m
 							df_crypto_1d = df_BTC_1d
 							df_crypto_12h = df_BTC_12h
@@ -204,7 +235,8 @@ def sim():
 						# 	first_wager = buy_wager
 						# 	sell_wager = buy_wager/df_crypto_1m.iloc[cryp_counter]["close"]
 							
-
+					# this part was included to make it so there was a delay after each "blow out" trade, which when the price hits 3.5 bollinger bands so 
+					# it automatically sells the whole balance and buys back in at the open of the next day. That or at noon that same day, depending on how aggressive your sells are
 					if global_grid.trade == "NOT READY":
 						# print('ready for delay')
 						# if df_BTC_1d.iloc[index_1d]["1dRSI"] < 15 and position.state == "OUT" :
@@ -231,20 +263,25 @@ def sim():
 						# 	print(f'SELL_Price:{df_crypto_1m.iloc[cryp_counter]["close"]}',file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
 						# 	print(f'RSI:{df_BTC_1d.iloc[index_1d]["1dRSI"]}',file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
 						 # and df_crypto_1d.iloc[index_12h]['close'] <  df_crypto_1d.iloc[index_12h]['Upper_band']
+						
+						# buys back in the determined balance at noon the next day since the trend is still going in the same direction, we just want to capitalize 
+						# on the blow out (only happens once or twice a month on big, quick runs)
 						if datetime.strftime(date_parser.parse(df_crypto_1m.iloc[cryp_counter]["timestamp"]), "%H:%M:%S") == noon and global_grid.all_trades_closed == "TRUE":
 							global_grid.ready()
+				
+				# A "print_to_file.py" would be ideal for all of these print clusters. They take up a lot of space here but they are pretty variable to there would have to be a lot of 
+				# itterations in the seperate file as well and just called for in this script as a function
+				
 							print("########################GRID DELAY ON(market correction)###########################",file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
 							print(f"SELL-MINS-{df_crypto_1m.iloc[cryp_counter]['timestamp']}",file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
 							print(f'SELL_Price:{df_crypto_1m.iloc[cryp_counter]["close"]}',file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
 							print(f'RSI:{df_BTC_1d.iloc[index_1d]["1dRSI"]}',file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
-
-
-						
-						# print('crypto chosen')
-						# print(crypto)
+							
 					if global_grid.trade == "READY"	:
 						if global_grid.made_first_trade == "FALSE" and USDT_balance > first_wager and global_grid.all_trades_closed == "TRUE" :
 							if global_grid.trade_style == "BULL GRID" and global_grid.made_first_trade == "FALSE" :
+								
+						# if grid trading strat is determined as BULL (general trend is either going up or going down but determined that would soon be going up)	
 								crypto = str('BTC')
 								crypto_sell_wager_array = BTC_sell_wager_array
 								crypto_wager_array = BTC_wager_array
@@ -279,6 +316,8 @@ def sim():
 								print(crypto)
 								position.state = "IN"									
 							elif global_grid.trade_style == "BEAR GRID" and global_grid.made_first_trade == "FALSE" :
+								
+						# if BEAR is chosen then the opposite applies as is stated above. The trend is going down or determined to be a peak that would soon crash		
 								crypto = str('BTCDWN')
 								crypto_sell_wager_array = BTCDWN_sell_wager_array
 								crypto_wager_array = BTCDWN_wager_array
@@ -313,6 +352,13 @@ def sim():
 								print('crypto chosen')
 								print(crypto)	
 								position.state = "IN"
+								
+							# applicable to either coin on the first trade. 
+							# the first trade determines:
+								# the grid height (as a percentage of the current price) 
+								# Resets grid trade variables to 0, such as trade number and so on
+								# First trade is never sold until the final strategy switch trade i.e from BULL to BEAR
+							
 							print('buy first')
 							print(USDT_balance)
 							crypto_wager = .75 * USDT_balance
