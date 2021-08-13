@@ -292,6 +292,7 @@ def sim():
 
 
 # Start of action loop of Bot
+
 # the for loops foundation (index variable) is the 1 minute BTC data frame, it can switch back and forth between BTC and BTCDOWN, but doesn't need to
 	# for each row in the btc 1m data set. This would not be in the live bot, the actions would be caused by independant functions that would have the 
 	# ability to initiate every 10 seconds using the most recent pull of data from the binance servers - see binance_functions.py to determine how seconds 
@@ -405,7 +406,7 @@ def sim():
 					
 				
 				# A "print_to_file.py" would be ideal for all of these print clusters(a rough initial attempt is in the bot.py folder)
-				# They take up a lot of space here but they are pretty variable to there would have to be a lot of 
+				# They take up a lot of space here but they are pretty variable so there would have to be a lot of 
 				# itterations in the seperate file as well and just called for in this script as a function
 				
 							print("########################GRID DELAY ON(market correction)###########################",file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
@@ -422,7 +423,17 @@ def sim():
 							
 							# if bull grid is defined in the initial conditions at the beginning or the 
 							if global_grid.trade_style == "BULL GRID" and global_grid.made_first_trade == "FALSE" :
-								
+							
+							
+					# the following two long lists of variable re-definitions are responsible for assigning the generic "crypto_example_array" to the equivalent
+					# specific cryptos variable or array.
+					# this allows for the loop to be a singular loop that switched back and forth between analyzing 2 coins at different times
+
+					# it would be feasible to add more coins to this and have it switch between more than 2 coins but for the bot to be able to buy and sell multiple
+					# different coins at once the logic would need to be altered as it can only "look at" one coin at a time. It just switches between coins that
+					# have exactly opposite trends e.g BTC and BTCDOWN
+						
+						
 						# if grid trading strat is determined as BULL (general trend is either going up or going down but determined that would soon be going up)	
 								crypto = str('BTC')
 								crypto_sell_wager_array = BTC_sell_wager_array
@@ -471,7 +482,7 @@ def sim():
 								df_crypto_1d = df_BTCDWN_1d
 								df_crypto_1m = df_BTCDWN_1m
 								df_crypto_15m = df_BTCDWN_15m
-								df_crypto_12h = df_BTCDWN_15m
+								df_crypto_12h = df_BTCDWN_12h
 								crypto_sell_times_grid = btcdwn_sell_times_grid
 								crypto_sell_times_all = btcdwn_sell_times_all
 								crypto_sell_times_even = btcdwn_sell_times_even
@@ -502,6 +513,9 @@ def sim():
 								# Resets grid trade variables to 0, such as trade number and so on
 								# First trade is never sold until the final strategy switch trade i.e from BULL to BEAR
 							
+							# print functions are implimented intermitently to determine the logic path and show current values
+							# 'buy first' states that the crypto being traded has been switched, each time the bot goes from BTC to BTCDOWM or vice versa
+							# it restarts to
 							print('buy first')
 							print(USDT_balance)
 							crypto_wager = .75 * USDT_balance
