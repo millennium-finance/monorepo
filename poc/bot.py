@@ -408,6 +408,7 @@ def sim():
 				# A "print_to_file.py" would be ideal for all of these print clusters(a rough initial attempt is in the bot.py folder)
 				# They take up a lot of space here but they are pretty variable so there would have to be a lot of 
 				# itterations in the seperate file as well and just called for in this script as a function
+				# the main trouble is that if its in a seperate file you have to import all of the applicable values 
 				
 							print("########################GRID DELAY ON(market correction)###########################",file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
 							print(f"SELL-MINS-{df_crypto_1m.iloc[cryp_counter]['timestamp']}",file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
@@ -518,6 +519,9 @@ def sim():
 							# it restarts to
 							print('buy first')
 							print(USDT_balance)
+							
+							# first buy wager is a majority of the total balance since we are confident in the underlying entrance and exit strategy
+							# this first purchase does not sell at its grid level profit like the grid trading strategy is inteded to work
 							crypto_wager = .75 * USDT_balance
 							crypto_trade_array = 0
 							crypto_trade_array = []
@@ -530,7 +534,10 @@ def sim():
 							USDT_balance = USDT_balance - crypto_wager
 							crypto_balance = crypto_balance + crypto_profit
 							trade_level = 0
-							level = 0					
+							level = 0
+							
+							# each buy or sell actions needs to append its values to the corresponding array 
+							# These arrays are created here and "generic" so at any one point they could hold the values of either BTC or BTCDOWM
 							crypto_buy_times_grid.append(df_crypto_1m.iloc[cryp_counter]["index"])
 							crypto_buys_grid.append(buy_price)
 							crypto_buy_net.append(crypto_profit)
@@ -546,6 +553,9 @@ def sim():
 							crypto_level_value.append(df_crypto_1m.iloc[cryp_counter]['close'])
 							crypto_min_level_value = crypto_level_value[-1]
 							crypto_max_level_value = crypto_level_value[-1]
+							
+							# the open_closed_array is a poor attempt at keeping grid pairs in order and defining which trades have been closed 
+							# and which trades are still open
 							crypto_opened_closed_array.append(opened)
 							opened_grid_trades += 1
 							position.state = "IN"
@@ -555,11 +565,17 @@ def sim():
 							buy_sell_price = df_crypto_1m.iloc[cryp_counter]['close']
 							first_wager = crypto_wager
 							first_profit = crypto_profit
+							
+							# this small loop only initiates the very first trade of the cycle, just to keep track of the market value from 
+							# the first time the account was opened
 							if len(crypto_buys_grid) == 1:
 								first_trade = 1
 								frist_trade = crypto_buys_grid[-1]
 								first_trade_value = principle/first_trade
 								market_value = first_trade_value * df_crypto_1m.iloc[cryp_counter]["close"]								
+							
+							# Eliminate the need for these buy making them all say the same information and then creating a seperate funcition
+							# and calling that function throughout the loop
 							print("#########################BUY-FIRST TRADE#############################",file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
 							print(f"CRYPTO TRADING WITH:{crypto}",file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))							
 							print(f"BUY-MINS-{df_crypto_1m.iloc[cryp_counter]['timestamp']}",file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
@@ -574,14 +590,23 @@ def sim():
 							print(f"LEVEL:{trade_level}",file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
 							print(f"LEVEL PRICE:{crypto_level_value[-1]}",file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))																			
 							print("############################################################",file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
+							
+							# the size of the "grid lines" are determined here
+							# since BTCDOWN is leveraged 3x, as far as we know, the its price moves 3 times faster, so for it to have a similar behavior
+							# as BTC, the grid lines need to be 3 time further appart. Values may vary and can be one of the variables optomized by the deep learning or genetic algo
 							if global_grid.trade_style == "BULL GRID":
 								Grid_size = .0125 * df_crypto_1m.iloc[cryp_counter]["close"] 
 							elif global_grid.trade_style == "BEAR GRID":
 								Grid_size = .0375 * df_crypto_1m.iloc[cryp_counter]["close"]
+								
+							# grid level one step bellow the current one
 							next_floor = crypto_level_value[-1] - Grid_size
+							# current level and the level one step above
 							next_roof = crypto_level_value[-1] + Grid_size
 							last_roof = crypto_level_value[-1]						
-
+						
+						
+						# this part is the 
 						if df_crypto_1d.iloc[index_1d]["1dRSI"] > 65 and df_crypto_1d.iloc[index_yesterday]["1dRSI"] > 65 and global_grid.wait_to_sell == "FALSE" and global_grid.trade_style == "BULL GRID" :
 							global_grid.wait_to_sell = "TRUE" 
 							print("#########################WAIT TO SELL###############################",file=open(f'logs/{start_date}-{end_date}-output.txt', 'a'))
@@ -1302,7 +1327,9 @@ def sim():
 										 	global_grid.trade_bull()
 										 	print('switch trends')
 									 		print(crypto_balance)
-								# elif df_crypto_12h.iloc[index_12h]['STMA_1st_derivative'] < 0:
+								
+								# the final exit strategy of each "cycle" (from BTC to BTCDOWN or vice versa) depends on the distance of the bollinger bands apart from each other
+								# when the bands are closer, the price is consistent around the MA of the bollinger band, if theyre far appart there are more and more extreme outliers
 								if (df_crypto_1d.iloc[index_1d]["1dRSI"] < 55 and df_crypto_1d.iloc[index_1d]["Bol_band_width"] < 1 ) or (df_crypto_1d.iloc[index_1d]["1dRSI"] < 60 and df_crypto_1d.iloc[index_1d]["Bol_band_width"] > 1 ) :
 									if df_crypto_1d.iloc[index_1d]["LTMA"] > df_crypto_1d.iloc[index_1d]["STMA"]:
 										global_grid.wait_to_sell = "FALSE"
